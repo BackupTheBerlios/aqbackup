@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: aqbackup.c,v $
                              -------------------
-    cvs         : $Id: aqbackup.c,v 1.1 2003/06/07 21:07:48 aquamaniac Exp $
+    cvs         : $Id: aqbackup.c,v 1.2 2003/06/25 15:37:36 aquamaniac Exp $
     begin       : Tue Jun 03 2003
     copyright   : (C) 2003 by Martin Preuss
     email       : martin@libchipcard.de
@@ -606,20 +606,24 @@ AQB_ENTRY *AQBackup_File2Entry(const char *filename){
   char buffer[300];
 
   DBG_DEBUG("File2Entry \"%s\"", filename);
-  if (stat(filename, &st)) {
-    DBG_ERROR("Error on stat(%s): %s",
-	      filename, strerror(errno));
-    return 0;
-  }
-
-  /* if link, then stat the link itself rather than the destination file */
-  if (!S_ISLNK(st.st_mode)) {
-    if (lstat(filename, &st)) {
-      DBG_ERROR("Error on lstat(%s): %s",
+  if (lstat(filename, &st)) {
+    if (stat(filename, &st)) {
+      DBG_ERROR("Error on stat(%s): %s",
 		filename, strerror(errno));
       return 0;
     }
   }
+
+  /* if link, then stat the link itself rather than the destination file */
+  /*
+   if (!S_ISLNK(st.st_mode)) {
+   if (lstat(filename, &st)) {
+   DBG_ERROR("Error on lstat(%s): %s",
+   filename, strerror(errno));
+   return 0;
+   }
+    }
+    */
 
   p=strrchr(filename, '/');
   if (!p)
@@ -1391,7 +1395,7 @@ AQB_BACKUP_REPOSITORY *AQBackup__FindMatchingRepository(AQBACKUP *b,
       }
       else if (*p2==0) {
 	/* baseDir ends, if dir has a "/" at that pos or ends too we got it */
-	if (*p1=='/' || *p1==0)
+	if (*p1=='/' || *p1==0 || strcmp(r->baseDir, "/")==0)
 	  break;
 	else {
 	  matches=0;

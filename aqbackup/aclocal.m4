@@ -43,7 +43,7 @@ AC_DEFUN(AS_SCRUB_INCLUDE,
   done
   [$1]=$GIVEN_CFLAGS
 ])
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # This function checks for the debugmode
 
@@ -67,7 +67,7 @@ AC_SUBST(DEBUGMODE)
 AC_DEFINE_UNQUOTED(DEBUGMODE,$DEBUGMODE,[debug mode to be used])
 AC_MSG_RESULT($DEBUGMODE)
 ])
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # This function checks for the output path for the documentation
 
@@ -89,7 +89,7 @@ AC_ARG_WITH(docpath, [  --with-docpath=DIR      where to store the apidoc],
 AC_SUBST(docpath)
 AC_MSG_RESULT($docpath)
 ])
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # These functions search for KDE 2-3
 
@@ -260,7 +260,7 @@ AC_SUBST(kde_includes)
 AC_SUBST(kde_generation)
 AC_SUBST(kde_install_dir)
 ])
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # These functions guess your operation system
 
@@ -343,7 +343,7 @@ AC_MSG_RESULT($OS_TYPE)
 ])
 
 
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # These functions search for QT 2-3
 
@@ -581,7 +581,7 @@ AC_SUBST(qt_uic)
 AC_SUBST(qt_generation)
 ])
 
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # These functions search for files
 
@@ -622,7 +622,7 @@ for li in $lf; do
     fi
 done
 ])
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # This function check if SSL is wanted
 
@@ -5194,7 +5194,7 @@ fi
 AC_MSG_RESULT([$SED])
 ])
 
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # This function check if SSL is wanted
 
@@ -5286,7 +5286,7 @@ AC_SUBST(libz_lib)
 ])
 
 
-# $Id: aclocal.m4,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
+# $Id: aclocal.m4,v 1.3 2003/06/25 15:37:36 aquamaniac Exp $
 # (c) 2002 Martin Preuss<martin@libchipcard.de>
 # This function checks for libchameleon
 
