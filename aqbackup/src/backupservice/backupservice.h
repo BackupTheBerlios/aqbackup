@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: backupservice.h,v $
                              -------------------
-    cvs         : $Id: backupservice.h,v 1.1 2003/06/07 21:07:53 aquamaniac Exp $
+    cvs         : $Id: backupservice.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
     begin       : Sat Jun 07 2003
     copyright   : (C) 2003 by Martin Preuss
     email       : martin@libchipcard.de
@@ -27,6 +27,16 @@
 
 #ifndef BACKUPSERVICE_H
 #define BACKUPSERVICE_H
+
+#include <service/ctservice.h>
+
+
+
+/* ping */
+#define BACKUPSERVICE_MSGCODE_RQ_PING 0x0000
+#define BACKUPSERVICE_MSGCODE_RQ_PING_VERSION 0x0100
+#define BACKUPSERVICE_MSGCODE_RP_PING 0x0001
+#define BACKUPSERVICE_MSGCODE_RP_PING_VERSION 0x0100
 
 
 /* client management */
@@ -110,10 +120,10 @@
 #define BACKUPSERVICE_MSGCODE_RP_OPENOUT_FILE 0x001d
 #define BACKUPSERVICE_MSGCODE_RP_OPENOUT_FILE_VERSION 0x0100
 
-#define BACKUPSERVICE_MSGCODE_RQ_CLOSEIN_FILE 0x001e
-#define BACKUPSERVICE_MSGCODE_RQ_CLOSEIN_FILE_VERSION 0x0100
-#define BACKUPSERVICE_MSGCODE_RP_CLOSEIN_FILE 0x001f
-#define BACKUPSERVICE_MSGCODE_RP_CLOSEIN_FILE_VERSION 0x0100
+#define BACKUPSERVICE_MSGCODE_RQ_CLOSEOUT_FILE 0x001e
+#define BACKUPSERVICE_MSGCODE_RQ_CLOSEOUT_FILE_VERSION 0x0100
+#define BACKUPSERVICE_MSGCODE_RP_CLOSEOUT_FILE 0x001f
+#define BACKUPSERVICE_MSGCODE_RP_CLOSEOUT_FILE_VERSION 0x0100
 
 #define BACKUPSERVICE_MSGCODE_RQ_WRITE_FILE 0x0020
 #define BACKUPSERVICE_MSGCODE_RQ_WRITE_FILE_VERSION 0x0100

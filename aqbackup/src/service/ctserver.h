@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: ctserver.h,v $
  -------------------
- cvs         : $Id: ctserver.h,v 1.1 2003/06/07 21:07:52 aquamaniac Exp $
+ cvs         : $Id: ctserver.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
  begin       : Thu Nov 28 2002
  copyright   : (C) 2002 by Martin Preuss
  email       : martin@libchipcard.de
@@ -27,7 +27,7 @@
 
 
 #ifndef CTSERVER_H
-#define CTSERVER_H "$Id: ctserver.h,v 1.1 2003/06/07 21:07:52 aquamaniac Exp $"
+#define CTSERVER_H "$Id: ctserver.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +38,7 @@ extern "C" {
 #include <chameleon/ipcservicelayer.h>
 #include <chameleon/cryp.h>
 #include <chameleon/conf.h>
-#include <ctservice.h>
+#include <service/ctservice.h>
 
 typedef struct CTSERVERDATASTRUCT CTSERVERDATA;
 

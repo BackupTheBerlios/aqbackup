@@ -56,7 +56,9 @@ AC_PROG_LIBTOOL
 # Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h syslog.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h])
+AC_CHECK_HEADERS([sys/socket.h sys/time.h syslog.h unistd.h])
+AC_CHECK_HEADERS([signal.h sys/wait.h])
 AC_CHECK_HEADERS([libintl.h],[have_libintl_h=yes],[have_libintl_h=no])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -71,6 +73,7 @@ AC_FUNC_SELECT_ARGTYPES
 AC_CHECK_FUNCS([gethostbyaddr gethostbyname inet_ntoa memmove memset])
 AC_CHECK_FUNCS([select socket])
 AC_CHECK_FUNCS([strcasecmp strdup strerror snprintf])
+AC_CHECK_FUNCS([getpid fork sigaction])
 
 AQ_CHECK_OS
 AQ_CHECK_LIBZ
@@ -88,13 +91,21 @@ case "$OS_TYPE" in
         AQBACKUPC_CFGFILE="`eval echo $prefix/etc`/aqbackupc.conf"
         AQBACKUPD_CFGFILE="`eval echo $prefix/etc`/aqbackupd.conf"
         AQBACKUP_REPOSITORY_DIR="`eval echo $prefix/share`/aqbackup"
+        AQBACKUPD_PIDDIR="`eval echo $prefix/var`/run"
+        AQBACKUPD_PIDFILE="aqserver.pid"
+        AQBACKUPD_LOGDIR="`eval echo $prefix/var`/log"
+        AQBACKUPD_LOGFILE="aqbackupd.log";
 	MAKE_DLL_TARGET=""
 	INSTALL_DLL_TARGET=""
 	;;
     windows)
-        AQBACKUPC_CFGFILE="c:\\\\windows\\\\aqbackupc.conf"
-        AQBACKUPD_CFGFILE="c:\\\\windows\\\\aqbackupd.conf"
+        AQBACKUPC_CFGFILE="c:\\\\aqbackupd\\\\aqbackupc.conf"
+        AQBACKUPD_CFGFILE="c:\\\\aqbackupd\\\\aqbackupd.conf"
         AQBACKUP_REPOSITORY_DIR="c:\\\\aqbackup"
+        AQBACKUPD_PIDDIR="c:\\\\aqbackupd"
+        AQBACKUPD_PIDFILE="aqserver.pid"
+        AQBACKUPD_LOGDIR="c:\\\\aqbackupd"
+        AQBACKUPD_LOGFILE="aqbackupd.log";
         AC_DEFINE_UNQUOTED(BUILDING_AQBACKUP_DLL,1,[if building DLL])
 	MAKE_DLL_TARGET="dll"
 	INSTALL_DLL_TARGET="dll-install"
@@ -147,7 +158,9 @@ fi
 AC_SUBST(I18N_CATALOG)
 
 
-dnl setup name of global config files
+
+dnl --------------------------------------- setup name of global config files
+
 AC_MSG_CHECKING(for client config file path and name)
 AC_ARG_WITH(client-cfg-file, 
   [  --with-client-cfg-file=DIR     set the path and name of the client config file],
@@ -172,6 +185,39 @@ AC_DEFINE_UNQUOTED(AQBACKUP_REPOSITORY_DIR,"$AQBACKUP_REPOSITORY_DIR",[repositor
 AC_SUBST(AQBACKUP_REPOSITORY_DIR)
 AC_MSG_RESULT($AQBACKUP_REPOSITORY_DIR)
 
+AC_MSG_CHECKING(for default pid dir)
+AC_ARG_WITH(pid-dir, 
+  [  --with-pid-dir=DIR     set the path for the pid file],
+  [AQBACKUPD_PIDDIR="$withval"])
+AC_DEFINE_UNQUOTED(AQBACKUPD_PIDDIR,"$AQBACKUPD_PIDDIR",[PID dir])
+AC_SUBST(AQBACKUPD_PIDDIR)
+AC_MSG_RESULT($AQBACKUPD_PIDDIR)
+
+AC_MSG_CHECKING(for default pid file)
+AC_ARG_WITH(pid-file, 
+  [  --with-pid-file=FILE     set the name of the pid file],
+  [AQBACKUPD_PIDFILE="$withval"])
+AC_DEFINE_UNQUOTED(AQBACKUPD_PIDFILE,"$AQBACKUPD_PIDFILE",[PID file])
+AC_SUBST(AQBACKUPD_PIDFILE)
+AC_MSG_RESULT($AQBACKUPD_PIDFILE)
+
+
+AC_MSG_CHECKING(for default log dir)
+AC_ARG_WITH(log-dir, 
+  [  --with-log-dir=DIR     set the path for the log file],
+  [AQBACKUPD_LOGDIR="$withval"])
+AC_DEFINE_UNQUOTED(AQBACKUPD_LOGDIR,"$AQBACKUPD_LOGDIR",[log dir])
+AC_SUBST(AQBACKUPD_LOGDIR)
+AC_MSG_RESULT($AQBACKUPD_LOGDIR)
+
+AC_MSG_CHECKING(for default log file)
+AC_ARG_WITH(log-file, 
+  [  --with-log-file=FILE     set the name of the log file],
+  [AQBACKUPD_LOGFILE="$withval"])
+AC_DEFINE_UNQUOTED(AQBACKUPD_LOGFILE,"$AQBACKUPD_LOGFILE",[log file])
+AC_SUBST(AQBACKUPD_LOGFILE)
+AC_MSG_RESULT($AQBACKUPD_LOGFILE)
+
 
 
 dnl ----------------------------------------------------------------- summary
@@ -194,5 +240,6 @@ AC_CONFIG_FILES([Makefile
                  src/backupservice/Makefile
                  src/progs/Makefile
                  src/progs/aqbackup/Makefile
+                 src/progs/aqbackupd/Makefile
                  ])
 AC_OUTPUT

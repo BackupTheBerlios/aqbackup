@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: backupserver.c,v $
                              -------------------
-    cvs         : $Id: backupserver.c,v 1.1 2003/06/07 21:07:53 aquamaniac Exp $
+    cvs         : $Id: backupserver.c,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
     begin       : Sat Jun 07 2003
     copyright   : (C) 2003 by Martin Preuss
     email       : martin@libchipcard.de
@@ -61,17 +61,565 @@ BACKUPSERVERDATA *BackupServerData_new(){
 void BackupServerData_free(BACKUPSERVERDATA *bd){
   if (bd) {
     AQBServer_free(bd->bserver);
-
     free(bd);
   }
 }
 
 
 
+BACKUPSERVERPEERDATA *BackupServerPeerData_new(){
+  BACKUPSERVERPEERDATA *bpd;
+
+  bpd=(BACKUPSERVERPEERDATA *)malloc(sizeof(BACKUPSERVERPEERDATA));
+  assert(bpd);
+  memset(bpd, 0, sizeof(BACKUPSERVERPEERDATA));
+  return bpd;
+}
+
+
+
+void BackupServerPeerData_free(BACKUPSERVERPEERDATA *bpd){
+  if (bpd) {
+    free(bpd->clientName);
+    free(bpd);
+  }
+}
+
+
+
+void BackupServerPeerData_freeUserData(void *d){
+  BackupServerPeerData_free((BACKUPSERVERPEERDATA *)d);
+}
+
+
+
+
+/*_________________________________________________________________________
+ *AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+ *           Handler for the various supported command messages
+ *YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+ */
+
+
+
+ERRORCODE BackupServer__SendErrorMessage(CTSERVERDATA *sd,
+					 IPCMESSAGELAYER *ml,
+					 IPCMESSAGE *req,
+					 ERRORCODE errcode) {
+  ERRORCODE err;
+  IPCMESSAGE *msg;
+  BACKUPSERVERDATA *rsd;
+  int newerrcode;
+  char errorbuffer[256];
+  int requestid;
+  int i;
+
+  DBG_ENTER;
+  assert(sd);
+  rsd=(BACKUPSERVERDATA*)CTServer_GetPrivateData(sd);
+  assert(rsd);
+
+  /* get request id */
+  err=IPCMessage_FirstIntParameter(req, &i);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+  if (i>=0x10000) {
+    /* open message, so no request id */
+    requestid=0;
+  }
+  else {
+    /* requestid */
+    err=IPCMessage_IntParameter(req, 2, &requestid);
+    if (!Error_IsOk(err)) {
+      DBG_ERROR_ERR(err);
+      DBG_LEAVE;
+      return err;
+    }
+  }
+
+  /* create response */
+  msg=CTService_Message_Create(CTSERVICE_MSGCODE_RP_ERROR,
+			       CTSERVICE_MSGCODE_RP_ERROR_VERSION,
+			       ++(sd->nextMessageId),
+			       requestid,
+			       300);
+  if (!msg) {
+    DBG_ERROR("Could not create message");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(IPCMESSAGE_ERROR_TYPE),
+		     IPCMESSAGE_ERROR_NO_MESSAGE);
+  }
+
+  /* create new error code */
+  if (Error_GetType(errcode)==Error_FindType(CTSERVICE_ERROR_TYPE))
+    newerrcode=-Error_GetCode(errcode);
+  else
+    newerrcode=-CTSERVICE_ERROR_REMOTE;
+
+  /* add error id */
+  err=IPCMessage_AddIntParameter(msg, newerrcode);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* add error message */
+  if (Error_ToString(errcode,
+		     errorbuffer,
+		     sizeof(errorbuffer))==0)
+    strcpy(errorbuffer,"Unspecified error");
+  err=IPCMessage_AddParameter(msg, errorbuffer, strlen(errorbuffer)+1);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* finalize message */
+  err=IPCMessage_BuildMessage(msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* enqueue the message for sending */
+  err=CTServer_SendResponse(sd,ml,msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  DBG_INFO("Message enqueued for sending");
+  DBG_LEAVE;
+  return 0;
+}
+
+
+
+ERRORCODE BackupServer__HandlePing(CTSERVERDATA *sd,
+				   IPCMESSAGELAYER *ml,
+				   IPCMESSAGE *req) {
+  ERRORCODE err;
+  IPCMESSAGE *msg;
+  int requestid;
+  int i;
+  BACKUPSERVERDATA *rsd;
+
+  DBG_ENTER;
+  assert(sd);
+  rsd=(BACKUPSERVERDATA*)CTServer_GetPrivateData(sd);
+  assert(rsd);
+
+  /* check version */
+  err=IPCMessage_IntParameter(req, 1, &i);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+  if ((i&0xff00)!=(BACKUPSERVICE_MSGCODE_RQ_PING_VERSION&0xff00)) {
+    DBG_ERROR("Bad message version");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(CTSERVICE_ERROR_TYPE),
+		     CTSERVICE_ERROR_BAD_MESSAGE_VERSION);
+  }
+
+  /* get request id */
+  err=IPCMessage_NextIntParameter(req, &requestid);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* create response */
+  msg=CTService_Message_Create(BACKUPSERVICE_MSGCODE_RP_PING,
+			       BACKUPSERVICE_MSGCODE_RP_PING_VERSION,
+			       ++(sd->nextMessageId),
+			       requestid,
+                               256);
+  if (!msg) {
+    DBG_ERROR("Could not create message");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(IPCMESSAGE_ERROR_TYPE),
+		     IPCMESSAGE_ERROR_NO_MESSAGE);
+  }
+
+  /* finalize message */
+  err=IPCMessage_BuildMessage(msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* enqueue the message for sending */
+  err=CTServer_SendResponse(sd,ml,msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  DBG_INFO("Message enqueued for sending");
+  DBG_LEAVE;
+  return 0;
+}
+
+
+
+ERRORCODE BackupServer__HandleRegister(CTSERVERDATA *sd,
+				       IPCMESSAGELAYER *ml,
+				       IPCMESSAGE *req) {
+  ERRORCODE err;
+  IPCMESSAGE *msg;
+  int requestid;
+  int i;
+  BACKUPSERVERDATA *rsd;
+  BACKUPSERVERPEERDATA *spd;
+  char *p;
+  int result;
+
+  DBG_ENTER;
+  assert(sd);
+  rsd=(BACKUPSERVERDATA*)CTServer_GetPrivateData(sd);
+  assert(rsd);
+
+  /* check version */
+  err=IPCMessage_IntParameter(req, 1, &i);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+  if ((i&0xff00)!=(BACKUPSERVICE_MSGCODE_RQ_REGISTER_VERSION&0xff00)) {
+    DBG_ERROR("Bad message version");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(CTSERVICE_ERROR_TYPE),
+		     CTSERVICE_ERROR_BAD_MESSAGE_VERSION);
+  }
+
+  /* get request id */
+  err=IPCMessage_NextIntParameter(req, &requestid);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* get client id */
+  err=IPCMessage_StringParameter(req, 4, &p);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+
+  spd=CTService_GetPeerUserData(ml);
+  assert(spd);
+
+  if (spd->cid!=0) {
+    if (!spd->clientName) {
+      DBG_ERROR("Client without name is already registered, please check");
+      result=0;
+    }
+    else {
+      if (strcmp(spd->clientName, p)==0) {
+	DBG_NOTICE("Client \"%s\" already registered", p);
+	result=1;
+      }
+      else {
+	DBG_NOTICE("Client \"%s\" still registered, please unregeister first",
+		   spd->clientName);
+	result=0;
+      }
+    }
+  }
+
+  spd->cid=AQBServer_ClientRegister(rsd->bserver, p);
+  if (spd==0) {
+    DBG_NOTICE("Error registering client \"%s\"",p);
+    result=0;
+  }
+  else {
+    spd->clientName=strdup(p);
+    result=1;
+  }
+
+  /* create response */
+  msg=CTService_Message_Create(BACKUPSERVICE_MSGCODE_RP_REGISTER,
+			       BACKUPSERVICE_MSGCODE_RP_REGISTER_VERSION,
+			       ++(sd->nextMessageId),
+			       requestid,
+                               256);
+  if (!msg) {
+    DBG_ERROR("Could not create message");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(IPCMESSAGE_ERROR_TYPE),
+		     IPCMESSAGE_ERROR_NO_MESSAGE);
+  }
+
+  /* add result */
+  err=IPCMessage_AddIntParameter(msg, result);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* finalize message */
+  err=IPCMessage_BuildMessage(msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* enqueue the message for sending */
+  err=CTServer_SendResponse(sd,ml,msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  DBG_INFO("Message enqueued for sending");
+  DBG_LEAVE;
+  return 0;
+}
+
+
+
+ERRORCODE BackupServer__HandleUnregister(CTSERVERDATA *sd,
+					 IPCMESSAGELAYER *ml,
+					 IPCMESSAGE *req) {
+  ERRORCODE err;
+  IPCMESSAGE *msg;
+  int requestid;
+  int i;
+  BACKUPSERVERDATA *rsd;
+  BACKUPSERVERPEERDATA *spd;
+  char *p;
+  int result;
+
+  DBG_ENTER;
+  assert(sd);
+  rsd=(BACKUPSERVERDATA*)CTServer_GetPrivateData(sd);
+  assert(rsd);
+
+  /* check version */
+  err=IPCMessage_IntParameter(req, 1, &i);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+  if ((i&0xff00)!=(BACKUPSERVICE_MSGCODE_RQ_UNREGISTER_VERSION&0xff00)) {
+    DBG_ERROR("Bad message version");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(CTSERVICE_ERROR_TYPE),
+		     CTSERVICE_ERROR_BAD_MESSAGE_VERSION);
+  }
+
+  /* get request id */
+  err=IPCMessage_NextIntParameter(req, &requestid);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* get client id */
+  err=IPCMessage_StringParameter(req, 4, &p);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    DBG_LEAVE;
+    return err;
+  }
+
+  spd=CTService_GetPeerUserData(ml);
+  assert(spd);
+
+  if (spd->cid!=0) {
+    if (!spd->clientName) {
+      DBG_ERROR("Client without name is already registered, please check");
+      result=0;
+    }
+    else {
+      if (strcmp(spd->clientName, p)==0) {
+	DBG_NOTICE("Client \"%s\" already registered", p);
+	result=1;
+      }
+      else {
+	DBG_NOTICE("Client \"%s\" still registered, please unregeister first",
+		   spd->clientName);
+	result=0;
+      }
+    }
+  }
+
+  result=AQBServer_ClientUnregister(rsd->bserver, spd->cid);
+  if (result) {
+    DBG_NOTICE("Error unregistering client \"%s\"", spd->clientName);
+  }
+
+  /* create response */
+  msg=CTService_Message_Create(BACKUPSERVICE_MSGCODE_RP_UNREGISTER,
+			       BACKUPSERVICE_MSGCODE_RP_UNREGISTER_VERSION,
+			       ++(sd->nextMessageId),
+			       requestid,
+                               256);
+  if (!msg) {
+    DBG_ERROR("Could not create message");
+    DBG_LEAVE;
+    return Error_New(0,
+		     ERROR_SEVERITY_ERR,
+		     Error_FindType(IPCMESSAGE_ERROR_TYPE),
+		     IPCMESSAGE_ERROR_NO_MESSAGE);
+  }
+
+  /* add result */
+  err=IPCMessage_AddIntParameter(msg, result);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* finalize message */
+  err=IPCMessage_BuildMessage(msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  /* enqueue the message for sending */
+  err=CTServer_SendResponse(sd,ml,msg);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    IPCMessage_free(msg);
+    DBG_LEAVE;
+    return err;
+  }
+
+  DBG_INFO("Message enqueued for sending");
+  DBG_LEAVE;
+  return 0;
+}
+
+
+
+
+
+
+
 ERRORCODE BackupServer_RequestHandler(CTSERVERDATA *sd,
 				      IPCMESSAGELAYER *ml,
 				      IPCMESSAGE *msg) {
-  return 0;
+  ERRORCODE err;
+  int msgCode;
+  IPCTRANSPORTLAYERTABLE *tlt;
+  char addrbuffer[256];
+  BACKUPSERVERDATA *rsd;
+
+  DBG_ENTER;
+  assert(sd);
+  rsd=(BACKUPSERVERDATA*)CTServer_GetPrivateData(sd);
+  assert(rsd);
+
+  /* get peer address and port */
+  tlt=IPCMessageLayer_GetTransportLayer(ml);
+  assert(tlt);
+  assert(tlt->getPeerAddress);
+  assert(tlt->getPeerPort);
+  err=tlt->getPeerAddress(tlt, addrbuffer, sizeof(addrbuffer));
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    return err;
+  }
+  if (strlen(addrbuffer)<1) {
+    /* no address, so use the id */
+#ifdef HAVE_SNPRINTF
+    snprintf(addrbuffer,sizeof(addrbuffer),
+	     "Id %d", IPCMessageLayer_GetId(ml));
+#else
+    sprintf(addrbuffer,"Id %d", IPCMessageLayer_GetId(ml));
+#endif
+  }
+
+  err=IPCMessage_FirstIntParameter(msg, &msgCode);
+  if (!Error_IsOk(err)) {
+    DBG_ERROR_ERR(err);
+    return err;
+  }
+  switch (msgCode) {
+  case BACKUPSERVICE_MSGCODE_RQ_PING:
+    DBG_NOTICE("REQUEST: Ping (%s)",addrbuffer);
+    err=BackupServer__HandlePing(sd, ml, msg);
+    break;
+  case BACKUPSERVICE_MSGCODE_RQ_REGISTER:
+    DBG_NOTICE("REQUEST: Register (%s)",addrbuffer);
+    err=BackupServer__HandleRegister(sd, ml, msg);
+    break;
+  case BACKUPSERVICE_MSGCODE_RQ_UNREGISTER:
+    DBG_NOTICE("REQUEST: Unregister (%s)",addrbuffer);
+    err=BackupServer__HandleUnregister(sd, ml, msg);
+    break;
+  default:
+    DBG_ERROR("Message code %d not supported (%s)",
+	      msgCode,
+	      addrbuffer);
+    err=Error_New(0,
+		  ERROR_SEVERITY_ERR,
+		  Error_FindType(CTSERVICE_ERROR_TYPE),
+		  CTSERVICE_ERROR_BAD_MESSAGE_CODE);
+    break;
+  } /* switch */
+
+  if (!Error_IsOk(err)) {
+    ERRORCODE localerr;
+
+    localerr=BackupServer__SendErrorMessage(sd,
+					    ml,
+					    msg,
+					    err);
+    if (!Error_IsOk(localerr)) {
+      DBG_ERROR_ERR(localerr);
+    }
+  }
+
+  DBG_LEAVE;
+  return err;
 }
 
 

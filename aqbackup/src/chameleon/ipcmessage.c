@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: ipcmessage.c,v $
                              -------------------
-    cvs         : $Id: ipcmessage.c,v 1.1 2003/06/07 21:07:49 aquamaniac Exp $
+    cvs         : $Id: ipcmessage.c,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
     begin       : Fri Oct 11 2002
     copyright   : (C) 2002 by Martin Preuss
     email       : martin@libchipcard.de
@@ -683,6 +683,7 @@ void IPCMessage_RemoveMessage(IPCMESSAGE *cmd, IPCMESSAGE **head) {
   assert(cmd);
   assert(head);
 
+  cmd->next=0;
   curr=*head;
   if (curr) {
     if (curr==cmd) {

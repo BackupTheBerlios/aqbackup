@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: ctservice.h,v $
  -------------------
- cvs         : $Id: ctservice.h,v 1.1 2003/06/07 21:07:52 aquamaniac Exp $
+ cvs         : $Id: ctservice.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
  begin       : Thu Nov 28 2002
  copyright   : (C) 2002 by Martin Preuss
  email       : martin@libchipcard.de
@@ -37,6 +37,7 @@ extern "C" {
 #include <chameleon/chameleon.h>
 #include <chameleon/cryp.h>
 #include <chameleon/ipcmessage.h>
+#include <chameleon/ipcmessagelayer.h>
 #include <chameleon/conf.h>
 
 #define CTSERVICE_MSGCODE_BF                       0x10001
@@ -95,6 +96,10 @@ extern "C" {
 
 
 typedef struct CTSERVICEREQUESTSTRUCT CTSERVICEREQUEST;
+typedef struct CTSERVICEDATASTRUCT CTSERVICEDATA;
+
+typedef void (*CTSERVICE_FREEUSERDATA_PTR)(void *d);
+
 
 struct CTSERVICEREQUESTSTRUCT {
   CTSERVICEREQUEST *next;
@@ -121,9 +126,10 @@ struct CTSERVICEDATASTRUCT {
   CTSERVICE_CHANNEL_STATE channelState;
   int nextSignId;
   int lastPeerSignId;
+  void *userData;
+  CTSERVICE_FREEUSERDATA_PTR freeUserDataPtr;
   CTSERVICEREQUEST *requests;
 };
-typedef struct CTSERVICEDATASTRUCT CTSERVICEDATA;
 
 
 ERRORCODE CTService_ModuleInit();
@@ -180,6 +186,13 @@ CTSERVICEREQUEST *CTService_Request_Create(int serviceid,
 					   int msgId,
 					   int msgReply,
 					   int msgSize);
+
+void *CTService_GetPeerUserData(IPCMESSAGELAYER *ml);
+void CTService_SetPeerUserData(IPCMESSAGELAYER *ml, void *d);
+
+CTSERVICE_FREEUSERDATA_PTR
+  CTService_SetFreeUserDataPtr(IPCMESSAGELAYER *ml,
+			       CTSERVICE_FREEUSERDATA_PTR newfn);
 
 ERRORCODE CTService_CheckMsgCodeAndVersion(IPCMESSAGE *msg,
 					   int msgCode,

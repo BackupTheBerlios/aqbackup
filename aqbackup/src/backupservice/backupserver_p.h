@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: backupserver_p.h,v $
                              -------------------
-    cvs         : $Id: backupserver_p.h,v 1.1 2003/06/07 21:07:53 aquamaniac Exp $
+    cvs         : $Id: backupserver_p.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
     begin       : Sat Jun 07 2003
     copyright   : (C) 2003 by Martin Preuss
     email       : martin@libchipcard.de
@@ -34,6 +34,7 @@
 #include <chameleon/chameleon.h>
 #include <service/ctserver.h>
 
+typedef struct _BACKUPSERVERPEERDATA BACKUPSERVERPEERDATA;
 
 
 struct _BACKUPSERVERDATA {
@@ -45,6 +46,18 @@ BACKUPSERVERDATA *BackupServerData_new();
 void BackupServerData_free(BACKUPSERVERDATA *bd);
 
 
+
+struct _BACKUPSERVERPEERDATA {
+  int cid;
+  char *clientName;
+};
+
+BACKUPSERVERPEERDATA *BackupServerPeerData_new();
+void BackupServerPeerData_free(BACKUPSERVERPEERDATA *bd);
+
+void BackupServerPeerData_freeUserData(void *d);
+
+
 ERRORCODE BackupServer_RequestHandler(CTSERVERDATA *sd,
 				      IPCMESSAGELAYER *ml,
 				      IPCMESSAGE *msg);
@@ -54,8 +67,19 @@ ERRORCODE BackupServer_ClientDown(CTSERVERDATA *sd,
 				  IPCMESSAGELAYER *ml);
 
 
+ERRORCODE BackupServer__SendErrorMessage(CTSERVERDATA *sd,
+					 IPCMESSAGELAYER *ml,
+					 IPCMESSAGE *req,
+					 ERRORCODE errcode);
 
 
+ERRORCODE BackupServer__HandleRegister(CTSERVERDATA *sd,
+				       IPCMESSAGELAYER *ml,
+				       IPCMESSAGE *req);
+
+ERRORCODE BackupServer__HandleUnRegister(CTSERVERDATA *sd,
+					 IPCMESSAGELAYER *ml,
+					 IPCMESSAGE *req);
 
 
 

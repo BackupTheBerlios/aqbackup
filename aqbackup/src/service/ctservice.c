@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: ctservice.c,v $
  -------------------
- cvs         : $Id: ctservice.c,v 1.1 2003/06/07 21:07:52 aquamaniac Exp $
+ cvs         : $Id: ctservice.c,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
  begin       : Thu Nov 28 2002
  copyright   : (C) 2002 by Martin Preuss
  email       : martin@libchipcard.de
@@ -105,6 +105,10 @@ void CTService_PeerData_free(CTSERVICEDATA *pd){
 
   DBG_ENTER;
   if (pd) {
+    /* free user data */
+    if (pd->freeUserDataPtr)
+      pd->freeUserDataPtr(pd->userData);
+
     /* free tempKey */
     if (pd->tempKey)
       Cryp_RsaKey_free(pd->tempKey);
@@ -743,6 +747,42 @@ unsigned int Debug_DataFingerPrint(const char *data, int size) {
   }
   return code;
 }
+
+
+
+void *CTService_GetPeerUserData(IPCMESSAGELAYER *ml){
+  CTSERVICEDATA *svd;
+
+  svd=(CTSERVICEDATA *)IPCMessageLayer_GetUserData(ml);
+  assert(svd);
+  return svd->userData;
+}
+
+
+
+void CTService_SetPeerUserData(IPCMESSAGELAYER *ml, void *d){
+  CTSERVICEDATA *svd;
+
+  svd=(CTSERVICEDATA *)IPCMessageLayer_GetUserData(ml);
+  assert(svd);
+  svd->userData=d;
+}
+
+
+
+CTSERVICE_FREEUSERDATA_PTR
+CTService_SetFreeUserDataPtr(IPCMESSAGELAYER *ml,
+			     CTSERVICE_FREEUSERDATA_PTR newfn){
+  CTSERVICEDATA *svd;
+  CTSERVICE_FREEUSERDATA_PTR oldfn;
+
+  svd=(CTSERVICEDATA *)IPCMessageLayer_GetUserData(ml);
+  assert(svd);
+  oldfn=svd->freeUserDataPtr;
+  svd->freeUserDataPtr=newfn;
+  return oldfn;
+}
+
 
 
 const char *CTService_ErrorString(int c){

@@ -1,7 +1,7 @@
 /***************************************************************************
  $RCSfile: backupserver.h,v $
                              -------------------
-    cvs         : $Id: backupserver.h,v 1.1 2003/06/07 21:07:53 aquamaniac Exp $
+    cvs         : $Id: backupserver.h,v 1.2 2003/06/11 13:18:35 aquamaniac Exp $
     begin       : Sat Jun 07 2003
     copyright   : (C) 2003 by Martin Preuss
     email       : martin@libchipcard.de
@@ -29,10 +29,19 @@
 #ifndef BACKUPSERVER_H
 #define BACKUPSERVER_H
 
+#include <service/ctserver.h>
+#include <backupservice/backupservice.h>
 
 
 typedef struct _BACKUPSERVERDATA BACKUPSERVERDATA;
 
+
+
+int BackupServer_Init(CTSERVERDATA *sd, CONFIGGROUP *root);
+ERRORCODE BackupServer_Fini(CTSERVERDATA *sd);
+ERRORCODE BackupServer_Work(CTSERVERDATA *sd,
+			    int timeout,
+			    int maxmsg);
 
 
 
