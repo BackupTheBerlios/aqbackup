@@ -1,0 +1,8 @@
+This directory contains Chameleon, the operating system abstraction library.
+It is written in C to be most portable.
+
+Currently it is ported to Linux, FreeBSD, OpenBSD and Win32.
+I'm planning to port it to PalmOS, too. 
+That is not needed for LibChipCard, but I plan to use it with other 
+projects, too.
+

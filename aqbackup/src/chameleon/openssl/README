@@ -1,0 +1,2 @@
+This directory contains code that uses OpenSSL to provide some basic
+crypto functions.

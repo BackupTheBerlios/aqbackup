@@ -1,0 +1,55 @@
+2003/06/07 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- added AQB_INTERACTOR which does all the interaction with the client
+- the client is now usable
+- fixed a bug in Text_Escape
+- fixed chameleon/conf.c so that German umlauts are recognized, too
+- started working on client-server implementation
+
+
+2003/06/06 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- storing and restoring files works now !
+
+
+2003/06/05 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- fixed a lot of bugs in converter code
+- added ConverterGroup, which allows creating daisy chains for Converters
+
+
+2003/06/04 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- restoring files now works
+- started on programs
+- started on aqbackup (storing/updating repositories)
+
+
+2003/06/03 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- added AQBackup general API framework
+- basic functions of the general API now work
+
+
+2003/06/02 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- storing files for backup now works, I will have now to work on
+  retrieving them ;-)
+
+
+2003/06/01 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- DATA_MODIFIERs are now CONVERTERs
+- added converters for rmd160 and md5
+- creating an MD5 sum now works
+
+
+2003/05/31 Martin Preuss <martin@libchipcard.de>
+------------------------------------------------
+- creating and opening a repository works ;-)
+- added client-server framework
+- adding an entry now works
+- each entry is now stored in it's own file (filename with prefix "e.")
+- each directory has a prefix ("d."), so we can never confuse a directory
+  and a file
+- added DATA_MODIFIER framework (already modules for zip and unzip available)
